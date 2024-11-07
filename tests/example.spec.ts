@@ -1,18 +1,34 @@
 import { test, expect } from '@playwright/test';
 
-test('has title', async ({ page }) => {
+declare global {
+  interface Window {
+    hello: string;
+    config: {
+      baseUrl: string;
+      enable: () => boolean;
+    };
+  }
+}
+
+test('inject to a window object', async ({ page }) => {
+  await page.addInitScript(() => {
+    window.hello = 'world';
+
+    window.config = {
+      baseUrl: 'https://example.com',
+      enable: () => {
+        return true;
+      },
+    };
+  });
+
   await page.goto('https://playwright.dev/');
 
-  // Expect a title "to contain" a substring.
-  await expect(page).toHaveTitle(/Playwright/);
-});
+  const hello = await page.evaluate(() => window.hello);
+  expect(hello).toBe('world');
 
-test('get started link', async ({ page }) => {
-  await page.goto('https://playwright.dev/');
-
-  // Click the get started link.
-  await page.getByRole('link', { name: 'Get started' }).click();
-
-  // Expects page to have a heading with the name of Installation.
-  await expect(page.getByRole('heading', { name: 'Installation' })).toBeVisible();
+  const config = await page.evaluate(() => window.config);
+  console.log('config', config);
+  expect(config.baseUrl).toBe('https://example.com');
+  expect(config.enable()).toBe(true);
 });
